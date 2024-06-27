@@ -59,7 +59,7 @@ window.onload = function () {
             ctx.drawImage(imageBackground, 0, 0, canvasWidth, canvasHeight);
 
             // Dessiner un motif semi-transparent au-dessus de l'image de fond
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Noir avec une opacité de 50%
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Noir avec une opacité de 50%
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
             drawScore();
@@ -111,7 +111,7 @@ window.onload = function () {
         ctx.restore();
     }
 
-    function drawBlock(position, image = null, angle = 0, flip = false) {
+    function drawBlock(position, image = null, angle = 0) {
         var radiusX = blockSize / 2;
         var radiusY = blockSize / 3;
         var x = position[0] * blockSize + radiusX;
@@ -120,20 +120,14 @@ window.onload = function () {
         if (image) {
             ctx.save();
             ctx.translate(x, y);
-            if (flip) {
-                ctx.scale(-1, 1);
-                x = -radiusX;
-            } else {
-                ctx.rotate(angle);
-                x = -radiusX;
-            }
-            ctx.drawImage(image, x, -radiusX, blockSize, blockSize);
+            ctx.rotate(angle);
+            ctx.drawImage(image, -radiusX, -radiusX, blockSize, blockSize);
             ctx.restore();
         } 
         else {
         // Dessiner un segment elliptique pour chaque partie du corps du serpent
         ctx.beginPath();
-        ctx.ellipse(position[0] * blockSize + radiusX, position[1] * blockSize + radiusX, radiusX, radiusY, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
         ctx.closePath();
         ctx.fill();
 
@@ -157,7 +151,6 @@ window.onload = function () {
             ctx.fillStyle = "#FFFF00";
 
             var angle;
-            var flip = false;
             switch (this.direction) {
                 case "right":
                     angle = 0;
@@ -166,17 +159,17 @@ window.onload = function () {
                     angle = Math.PI / 2;
                     break;
                 case "left":
-                    angle = 0;
-                    flip = true;
+                    angle = Math.PI;
                     break;
                 case "up":
                     angle = -Math.PI / 2;
                     break;
                 default:
-                    angle = 0;           
+                    angle = 0;
+            
             }
             // Dessiner la tête du serpent avec rotation et taille ajustée
-            drawBlock(this.body[0], imageHead, angle, flip);
+            drawBlock(this.body[0], imageHead, angle);
 
             // Dessiner le corps du serpent
             for (var i = 1; i < this.body.length; i++) {
@@ -319,4 +312,3 @@ window.onload = function () {
         snakee.setDirection(newDirection);
     };
 };
-
