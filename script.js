@@ -1,8 +1,10 @@
 window.onload = function () {
+    var canvas = document.getElementById('myCanvas');
+    var ctx = canvas.getContext('2d');
+
     var canvasWidth = 900;
     var canvasHeight = 600;
     var blockSize = 30;
-    var ctx;
     var delay = 200;
     var snakee;
     var applee;
@@ -11,32 +13,45 @@ window.onload = function () {
     var imageHead = new Image(); // Ajout de l'image de la tête de serpent
     var widthInBlocks = canvasWidth / blockSize;
     var heightInBlocks = canvasHeight / blockSize;
-    var score;
-    var highscore;
+    var score = 0;
+    var highscore = 0; // Initialiser le highscore à 0 au début
     var timeout;
 
     // Charger l'image de fond
     imageBackground.src = "jungle_background.png";
     imageApplee.src = "Apple_icon_1.png";
     imageHead.src = "snake_head-transformed.png"; // Image de la tête de serpent au format PNG avec transparence
+
     imageBackground.onload = function () {
         init();
     };
 
     function init() {
-        var canvas = document.getElementById('myCanvas');
-        canvas.style.border = "30px solid grey";
-        canvas.style.margin = "50px auto";
-        canvas.style.display = "block";
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-        ctx = canvas.getContext('2d');
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
 
         snakee = new Snake([[6, 4], [5, 4], [4, 4], [3, 4], [2, 4]], "right");
         applee = new Apple([10, 10]);
-        score = 0;
-        highscore = score;
+
+        canvas.addEventListener('mousedown', handleRestartClick);
+        canvas.addEventListener('touchstart', handleRestartClick);        
+
+        // Commencer le jeu
         refreshCanvas();
+    }
+
+    function handleRestartClick(event) {
+        // Vérifier si le clic/toucher est dans les limites du canvas
+        var rect = canvas.getBoundingClientRect();
+        var clickX = event.clientX - rect.left;
+        var clickY = event.clientY - rect.top;
+
+        // Vérifier si le clic/toucher est dans les limites du canvas
+        if (clickX >= 0 && clickX <= canvas.width && clickY >= 0 && clickY <= canvas.height) {
+            restart(); // Appeler la fonction restart si le clic/toucher est sur le canvas
+        }
     }
 
     function refreshCanvas() {
@@ -53,30 +68,29 @@ window.onload = function () {
                     applee.setNewPosition();
                 } while (applee.isOnSnake(snakee));
             }
+
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             // Dessiner l'image de fond
             ctx.drawImage(imageBackground, 0, 0, canvasWidth, canvasHeight);
 
-            // Dessiner un motif semi-transparent au-dessus de l'image de fond
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Noir avec une opacité de 50%
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
             drawScore();
             snakee.draw();
             applee.draw();
+
             timeout = setTimeout(refreshCanvas, delay);
         }
     }
 
     function gameOver() {
+        clearTimeout(timeout);
         ctx.save();
-        ctx.font = "bold 70px sans-serif";
         ctx.fillStyle = "#000";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
         ctx.strokeStyle = "white";
         ctx.lineWidth = 5;
+        ctx.font = "bold 70px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         var centreX = canvasWidth / 2;
         var centreY = canvasHeight / 2;
         ctx.strokeText("GAME OVER !", centreX, centreY - 180);
@@ -91,25 +105,42 @@ window.onload = function () {
         snakee = new Snake([[6, 4], [5, 4], [4, 4], [3, 4], [2, 4]], "right");
         applee = new Apple([10, 10]);
         score = 0;
-        clearTimeout(timeout);
         refreshCanvas();
     }
 
     function drawScore() {
         ctx.save();
-        ctx.font = "bold 200px sans-serif";
-        ctx.fillStyle = "#000000";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        var centreX = canvasWidth / 2;
-        var centreY = canvasHeight / 2;
-        ctx.fillText(score.toString(), centreX, centreY);
+        ctx.fillStyle = "#000";
         ctx.font = "bold 30px sans-serif";
-        ctx.fillStyle = "#FFFFFF";//FFFFFF 606060
-        ctx.textAlign = "center";
-        ctx.fillText("High Score = " + highscore.toString(), 150, 30);
+        ctx.fillText("Score: " + score, 50, 30);
+        ctx.fillText("High Score: " + highscore, 650, 30);
         ctx.restore();
     }
+
+    document.onkeydown = function handleKeyDown(e) {
+        var key = e.keyCode;
+        var newDirection;
+        switch (key) {
+            case 37:
+                newDirection = "left";
+                break;
+            case 38:
+                newDirection = "up";
+                break;
+            case 39:
+                newDirection = "right";
+                break;
+            case 40:
+                newDirection = "down";
+                break;
+            case 32:
+                restart();
+                return;
+            default:
+                return;
+        }
+        snakee.setDirection(newDirection);
+    };
 
     function drawBlock(position, image = null, angle = 0, flip = false) {
         var radiusX = blockSize / 2;
@@ -129,19 +160,18 @@ window.onload = function () {
             }
             ctx.drawImage(image, x, -radiusX, blockSize, blockSize);
             ctx.restore();
-        } 
-        else {
-        // Dessiner un segment elliptique pour chaque partie du corps du serpent
-        ctx.beginPath();
-        ctx.ellipse(position[0] * blockSize + radiusX, position[1] * blockSize + radiusX, radiusX, radiusY, 0, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.fill();
+        } else {
+            // Dessiner un segment elliptique pour chaque partie du corps du serpent
+            ctx.beginPath();
+            ctx.ellipse(position[0] * blockSize + radiusX, position[1] * blockSize + radiusX, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fill();
 
-        // Dessiner l'image de texture d'écailles à l'intérieur de l'ellipse
-        ctx.save();
-        ctx.clip();
-        ctx.drawImage(snakee.imageBody, position[0] * blockSize, position[1] * blockSize, blockSize, blockSize);
-        ctx.restore();
+            // Dessiner l'image de texture d'écailles à l'intérieur de l'ellipse
+            ctx.save();
+            ctx.clip();
+            ctx.drawImage(snakee.imageBody, position[0] * blockSize, position[1] * blockSize, blockSize, blockSize);
+            ctx.restore();
         }
     }
 
@@ -173,7 +203,7 @@ window.onload = function () {
                     angle = -Math.PI / 2;
                     break;
                 default:
-                    angle = 0;           
+                    angle = 0;
             }
             // Dessiner la tête du serpent avec rotation et taille ajustée
             drawBlock(this.body[0], imageHead, angle, flip);
@@ -182,7 +212,7 @@ window.onload = function () {
             for (var i = 1; i < this.body.length; i++) {
                 drawBlock(this.body[i]);
             }
-            
+
             ctx.restore();
         };
 
@@ -284,7 +314,6 @@ window.onload = function () {
 
         this.isOnSnake = function (snakeToCheck) {
             var isOnSnake = false;
-
             for (var i = 0; i < snakeToCheck.body.length; i++) {
                 if (this.position[0] === snakeToCheck.body[i][0] && this.position[1] === snakeToCheck.body[i][1]) {
                     isOnSnake = true;
@@ -294,6 +323,7 @@ window.onload = function () {
         };
     }
 
+    // Gestion des touches du clavier
     document.onkeydown = function handleKeyDown(e) {
         var key = e.keyCode;
         var newDirection;
@@ -310,7 +340,7 @@ window.onload = function () {
             case 40:
                 newDirection = "down";
                 break;
-            case 32:
+            case 32: // Espace pour recommencer le jeu
                 restart();
                 return;
             default:
@@ -318,5 +348,89 @@ window.onload = function () {
         }
         snakee.setDirection(newDirection);
     };
+
+    // Fonction pour dessiner un bloc (utilisé pour le serpent et la pomme)
+    function drawBlock(position, image = null, angle = 0, flip = false) {
+        var radiusX = blockSize / 2;
+        var radiusY = blockSize / 3;
+        var x = position[0] * blockSize + radiusX;
+        var y = position[1] * blockSize + radiusY;
+
+        if (image) {
+            ctx.save();
+            ctx.translate(x, y);
+            if (flip) {
+                ctx.scale(-1, 1);
+                x = -radiusX;
+            } else {
+                ctx.rotate(angle);
+                x = -radiusX;
+            }
+            ctx.drawImage(image, x, -radiusX, blockSize, blockSize);
+            ctx.restore();
+        } else {
+            // Dessiner un segment elliptique pour chaque partie du corps du serpent
+            ctx.beginPath();
+            ctx.ellipse(position[0] * blockSize + radiusX, position[1] * blockSize + radiusX, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Dessiner l'image de texture d'écailles à l'intérieur de l'ellipse
+            ctx.save();
+            ctx.clip();
+            ctx.drawImage(snakee.imageBody, position[0] * blockSize, position[1] * blockSize, blockSize, blockSize);
+            ctx.restore();
+        }
+    }
+
+    // Fonction pour redémarrer le jeu
+    function restart() {
+        snakee = new Snake([[6, 4], [5, 4], [4, 4], [3, 4], [2, 4]], "right");
+        applee = new Apple([10, 10]);
+        score = 0;
+        timeout = setTimeout(refreshCanvas, delay);
+    }
+
+    // Fonction principale pour rafraîchir le canvas à chaque frame
+    function refreshCanvas() {
+        snakee.advance();
+
+        if (snakee.checkCollision()) {
+            gameOver();
+        } else {
+            if (snakee.isEatingApple(applee)) {
+                score++;
+                highscore = Math.max(score, highscore);
+                snakee.ateApple = true;
+                do {
+                    applee.setNewPosition();
+                } while (applee.isOnSnake(snakee));
+            }
+
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // Dessiner l'image de fond
+            ctx.drawImage(imageBackground, 0, 0, canvasWidth, canvasHeight);
+
+            drawScore();
+            snakee.draw();
+            applee.draw();
+
+            timeout = setTimeout(refreshCanvas, delay);
+        }
+    }
+
+    // Fonction pour dessiner le score
+    function drawScore() {
+        ctx.save();
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 30px sans-serif";
+        ctx.fillText("Score: " + score, 50, 30);
+        ctx.fillText("High Score: " + highscore, 650, 30);
+        ctx.restore();
+    }
+
+    // Initialisation du jeu
+    init();
 };
 
